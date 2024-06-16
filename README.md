@@ -20,7 +20,7 @@ Generador de sala de control online y enlaces para concursantes online.
 
 # Instalación
 
-- Acceder con el navegador a http://raw.githack.com/olimpaida-informatica/online-proctor-wizard/master/ o bien copiar el archivo `index.html` a la ruta donde se instalará y acceder a ella con el navegador.
+- Acceder con el navegador a http://raw.githack.com/olimpiada-informatica/online-proctor-wizard/master/ o bien copiar el archivo `index.html` a la ruta donde se instalará y acceder a ella con el navegador.
 - En el archivo `index.html` se pueden modificar las variables globales `settings` y `labels` para adaptar el asistente a las necesidades concretas. La utilidad de las propiedades de `settings` son las siguientes:
   - `vdo_ninja_url`: URL donde se alojan los servicios de VDO.ninja. Solo cambiar si se utiliza un servidor VDO.ninja autohospedado
   - `vdo_ninja_url_encryption`: URL donde se alojan los servicios de cifrado de URL para los servicios de VDO.ninja. Solo cambiar si se utiliza un servidor VDO.ninja autohospedado
@@ -65,7 +65,7 @@ Generator of online control room and online contestants links.
 
 # Installation
 
-- Access via the browser at http://raw.githack.com/olimpaida-informatica/online-proctor-wizard/master/ or copy the `index.html` file to the path where it will be installed and access it with the browser.
+- Access via the browser at http://raw.githack.com/olimpiada-informatica/online-proctor-wizard/master/ or copy the `index.html` file to the path where it will be installed and access it with the browser.
 - In the `index.html` file, you can modify the global variables `settings` and `labels` to adapt the wizard to specific needs. The description of each `settings` property:
   - `vdo_ninja_url`: URL where the VDO.ninja services is hosted. Only change if using a self-hosted VDO.ninja server
   - `vdo_ninja_url_encryption`: URL where the URL encryption services for VDO.ninja services is hosted. Only change if using a self-hosted VDO.ninja server
