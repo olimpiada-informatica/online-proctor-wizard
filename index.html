@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>
+Online Proctor Wizard
+</title>
+</head>
+<body>
+<div id="room_wizard"></div>
+<script>
+var settings = {
+	vdo_ninja_url: 'https://vdo.ninja', // URL where the VDO.ninja services is hosted. Only change if using a self-hosted VDO.ninja server
+	vdo_ninja_url_encryption: 'https://invite.cam', // URL where the URL encryption services for VDO.ninja services is hosted. Only change if using a self-hosted VDO.ninja server
+	vdo_ninja_url_encryption_key: 'OBSNINJAFORLIFE', // Key to use to encrypt the URL. Only change if using a self-hosted VDO.ninja server
+	room_title_prefix: new Date().getFullYear(), // Title of the proctor page, also used for the wizard page. Any Unicode string is valid
+	room_favicon: undefined, // Image to display as page icon and logo in the waiting room. Must be a valid URL
+	room_name_prefix: new Date().getFullYear(), // Prefix to use for rooms, must be unique for each use. Only letters and numbers are allowed, no spaces
+	pwd_min_length: 8, // Minimum allowed length for the room password. Min: 0
+	pwd_generate_length: 20, // Length of room passwords generated with the password generator
+	num_contestants: 8, // Number of contestants. Min: 1
+	teams: [ 'Belgium', 'France', 'Ireland', 'Italy', 'Luxembourg', 'Netherlands', 'Portugal', 'Spain', 'Switzerland', 'United Kingdom' ], // Names of the teams. For each, any Unicode string is valid
+	langs: { en: 'English', de: 'German', es: 'Spanish', fr: 'French', it: 'Italian', nl: 'Dutch', pt: 'Portuguese' }, // ISO 639 Set-1 (2-letters) language codes and the name of the language
+};
+
+var labels = { // Translatable/Replaceable wizard strings
+	team: 'Team',
+	pwd: 'Choose a password (<b>and remember it!</b>)',
+        pwd_generate: 'Generate',
+	contestants: 'Contestants\' names',
+	lang: 'Language',
+	submit: 'Generate links',
+	director: 'Open the Control Room',
+	links: 'Links',
+	copy: '📋',
+	copy_alt: 'Click to copy the URL',
+}
+</script>
+<style>
+#room_wizard label {
+	display: block;
+}
+#room_wizard #room_pwd {
+	margin-right: 0.5em;
+}
+#room_wizard #room_submit {
+	padding: 2em;
+	font-weight: bold;
+	margin: 1em 0;
+	background-color: #204a87;
+	border-color: #4075a4;
+	border-radius: 0.5em;
+	color: #eaeaea;
+}
+#room_wizard #room_links {
+	margin-top: 0.5em;
+}
+#room_wizard #room_links > ul {
+	margin-top: 0;
+}
+#room_wizard #room_links label {
+	display: inline-block;
+	margin-right: 0.5em;
+}
+#room_wizard #room_links .copy {
+	display: inline-block;
+	cursor: copy;
+}
+#room_wizard #room_links .room_link {
+	display: block;
+	font-size: small;
+}
+#room_wizard #room_links > ul > li:first-child > a {
+	font-size: x-large;
+	margin-bottom: 0.5em;
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+<script>
+let init_wizard;
+(init_wizard = (settings, labels) => {
+
+	if (typeof settings === 'string') settings = Object.assign(window.settings, JSON.parse(settings));
+	if (typeof labels === 'string') labels = Object.assign(window.labels, JSON.parse(labels));
+
+	// From https://invite.cam source code
+	function encrypt_contestant_link(input) {
+		if (input.startsWith(settings.vdo_ninja_url + '/')) input = input.replace(settings.vdo_ninja_url + '/', 'vdo.ninja/');
+		var encrypted = CryptoJS.AES.encrypt(input, settings.vdo_ninja_url_encryption_key);
+		return settings.vdo_ninja_url_encryption + '/' + encrypted.toString();
+	}
+
+	function generate_proctoring_links(event) {
+		event.preventDefault();
+		const get_value = (id) => event.target.querySelector('#' + id).value;
+		const room_title = encodeURIComponent(settings.room_title_prefix + ' ' + get_value('room_name'));
+		const room_name = get_value('room_name').replace(/ /g, '');
+		const room_pwd = get_value('room_pwd');
+		const contestants = [];
+		[...Array(settings.num_contestants).keys()].forEach(i => {
+			const contestant = get_value('room_contestant_' + i);
+			if (contestant) contestants.push(contestant);
+		});
+		const room_lang = get_value('room_lang');
+		const director_css = 'button[data-action-type="solo-chat"] { display: block !important; } #websitesharebutton, #roomsettingsbutton { display: none !important; }';
+		const director_css_encoded = btoa(director_css);
+
+		const director_link = `${settings.vdo_ninja_url}/?dir=${encodeURIComponent(settings.room_name_prefix)}${encodeURIComponent(room_name)}&pw=${encodeURIComponent(room_pwd)}&codirector=${encodeURIComponent(room_pwd)}&ln=${room_lang}&favicon=${encodeURIComponent(settings.room_favicon)}&base64css=${encodeURIComponent(director_css_encoded)}&l=Proctor&cleandirector&r2d2&orderby=label&novice&hs&ms=0&hidecodirectors&m&vm&hidetranslate&blindall&hidehome&notify&clock24`;
+		linksDiv.innerHTML = '';
+		const linksLabel = document.createElement('LABEL');
+		linksDiv.appendChild(linksLabel);
+		linksLabel.innerHTML = labels.links + ':';
+		const linksUl = document.createElement('UL');
+		linksDiv.appendChild(linksUl);
+		const linkDirectorDiv = document.createElement('LI');
+		linksUl.appendChild(linkDirectorDiv);
+		const linkDirectorLabel = document.createElement('LABEL');
+		linkDirectorDiv.appendChild(linkDirectorLabel);
+		linkDirectorLabel.innerHTML = 'Proctor';
+		const linkDirectorA = document.createElement('A');
+		linkDirectorDiv.appendChild(linkDirectorA);
+		linkDirectorA.classList.add('room_link');
+		linkDirectorA.innerHTML = labels.director;
+		linkDirectorA.href = director_link;
+		linkDirectorA.target = '_blank';
+		contestants.forEach(contestant => {
+			const contestant_link = `${settings.vdo_ninja_url}/?push&room=${encodeURIComponent(settings.room_name_prefix)}${encodeURIComponent(room_name)}&pw=${encodeURIComponent(room_pwd)}&ln=${room_lang}&l=${encodeURIComponent(contestant)}&ns&noheader&favicon=${encodeURIComponent(settings.room_favicon)}&headertitle=${encodeURIComponent(room_title)}&as&wc&ssb&broadcast&nmb&nvb&nsb&nohub&do&dc&r2d2&notify&sslabel&hidetranslate&nofsb`;
+			const contestant_link_encrypted = encrypt_contestant_link(contestant_link);
+			const linkContestantRow = document.createElement('LI');
+			linksUl.appendChild(linkContestantRow);
+			const linkContestantLabel = document.createElement('LABEL');
+			linkContestantRow.appendChild(linkContestantLabel);
+			linkContestantLabel.innerHTML = contestant;
+			const linkContestantCopy = document.createElement('SPAN');
+			linkContestantRow.appendChild(linkContestantCopy);
+			linkContestantCopy.innerHTML = labels.copy;
+			linkContestantCopy.setAttribute('title', labels.copy_alt);
+			linkContestantCopy.classList.add('copy');
+			linkContestantCopy.dataset.link = contestant_link_encrypted;
+			linkContestantCopy.addEventListener('click', event => {
+				event.preventDefault();
+				navigator.clipboard.writeText(event.target.dataset.link);
+			});
+			const linkContestantA = document.createElement('A');
+			linkContestantRow.appendChild(linkContestantA);
+			linkContestantA.classList.add('room_link');
+			linkContestantA.innerHTML = contestant_link_encrypted;
+			linkContestantA.href = contestant_link_encrypted;
+			linkContestantA.target = '_blank';
+		});
+		return false;
+	}
+
+	const mainDiv = document.getElementById('room_wizard');
+	mainDiv.textContent = '';
+
+	const wizardForm = document.createElement('FORM');
+	mainDiv.appendChild(wizardForm);
+
+	const teamDiv = document.createElement('DIV');
+	wizardForm.appendChild(teamDiv);
+	const teamLabel = document.createElement('LABEL');
+	teamDiv.appendChild(teamLabel);
+	teamLabel.innerHTML = labels.team + ':';
+	const teamSelect = document.createElement('SELECT');
+	teamDiv.appendChild(teamSelect);
+	teamSelect.id = 'room_name';
+	teamSelect.setAttribute('required', 'required');
+	[ '' ].concat(settings.teams.sort((a, b) => a.localeCompare(b))).forEach(key => {
+		const value = key;
+		const teamOption = document.createElement('OPTION');
+		teamSelect.appendChild(teamOption);
+		teamOption.value = key;
+		teamOption.innerHTML = value;
+	});
+	if (settings.teams.length === 1) {
+		teamSelect.value = settings.teams[0];
+		teamDiv.style.display = "none";
+	}
+
+	const pwdDiv = document.createElement('DIV');
+	wizardForm.appendChild(pwdDiv);
+	const pwdLabel = document.createElement('LABEL');
+	pwdDiv.appendChild(pwdLabel);
+	pwdLabel.innerHTML = labels.pwd + ':';
+	const pwdInput = document.createElement('INPUT');
+	pwdDiv.appendChild(pwdInput);
+	pwdInput.id = 'room_pwd';
+	pwdInput.setAttribute('minlength', settings.pwd_min_length);
+	pwdInput.setAttribute('required', 'required');
+	const pwdGenerateButton = document.createElement('BUTTON');
+	pwdDiv.appendChild(pwdGenerateButton);
+	pwdGenerateButton.textContent = labels.pwd_generate;
+	pwdGenerateButton.type = "button"; // Do not submit
+	pwdGenerateButton.addEventListener('click', () => {
+		pwdInput.value = new Array(settings.pwd_generate_length).fill().reduce((acc) => acc + 	String.fromCharCode(Math.random() * 86 + 40), "");
+		pwdGenerateButton.setAttribute("disabled", "");
+	});
+	pwdInput.addEventListener('change', () => pwdGenerateButton[pwdInput.value ? "setAttribute" : "removeAttribute"]("disabled", ""));
+
+	const contestantsDiv = document.createElement('DIV');
+	wizardForm.appendChild(contestantsDiv);
+	const contestantsLabel = document.createElement('LABEL');
+	contestantsDiv.appendChild(contestantsLabel);
+	contestantsLabel.innerHTML = labels.contestants + ':';
+	for (let i = 0; i < settings.num_contestants; i++) {
+		const contestantRow = document.createElement('DIV');
+		contestantsDiv.appendChild(contestantRow);
+		const contestantInput = document.createElement('INPUT');
+		contestantRow.appendChild(contestantInput);
+		contestantInput.id = 'room_contestant_' + i;
+		if (i === 0) contestantInput.setAttribute("required", "");
+	}
+
+	const langDiv = document.createElement('DIV');
+	wizardForm.appendChild(langDiv);
+	const langLabel = document.createElement('LABEL');
+	langDiv.appendChild(langLabel);
+	langLabel.innerHTML = labels.lang + ':';
+	const langSelect = document.createElement('SELECT');
+	langDiv.appendChild(langSelect);
+	langSelect.id = 'room_lang';
+	Object.keys(settings.langs).sort((a, b) => settings.langs[a].localeCompare(settings.langs[b])).forEach(key => {
+		const value = settings.langs[key];
+		const langOption = document.createElement('OPTION');
+		langSelect.appendChild(langOption);
+		langOption.value = key;
+		langOption.innerHTML = value;
+		if (key === 'en') langOption.setAttribute('selected', 'selected');
+	});
+	if (Object.keys(settings.langs).length === 1) {
+		langSelect.value = Object.keys(settings.langs)[0];
+		langDiv.style.display = "none";
+	}
+
+	const submitDiv = document.createElement('DIV');
+	wizardForm.appendChild(submitDiv);
+	const submitButton = document.createElement('BUTTON');
+	submitDiv.appendChild(submitButton);
+	submitButton.innerHTML = labels.submit;
+	submitButton.id = 'room_submit';
+	submitButton.type = 'submit';
+
+	const linksDiv = document.createElement('DIV');
+	wizardForm.appendChild(linksDiv);
+	linksDiv.id = 'room_links';
+
+	wizardForm.addEventListener('submit', generate_proctoring_links);
+})(new URLSearchParams(window.location.search).get("settings") ?? settings, new URLSearchParams(window.location.search).get("labels") ?? labels);
+</script>
+</body>
+</html>
