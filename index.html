@@ -2,7 +2,7 @@
 <html>
 <head>
 <title>
-Online Proctor Wizard
+Online proctor wizard
 </title>
 </head>
 <body>
@@ -23,6 +23,7 @@ var settings = {
 };
 
 var labels = { // Translatable/Replaceable wizard strings
+	title_suffix: document.title,
 	team: 'Team',
 	pwd: 'Choose a password (<b>and remember it!</b>)',
         pwd_generate: 'Generate',
@@ -149,6 +150,8 @@ let init_wizard;
 		});
 		return false;
 	}
+
+	document.title = (settings.room_title_prefix ? settings.room_title_prefix + ' ' : '') + labels.title_suffix;
 
 	const mainDiv = document.getElementById('room_wizard');
 	mainDiv.textContent = '';
